@@ -45,7 +45,7 @@ import {
   PeriodicExportingMetricReader,
   ConsoleMetricExporter,
 } from "@opentelemetry/sdk-metrics";
-import { Resource } from "@opentelemetry/resources";
+import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
 
 export default function (pi: ExtensionAPI) {
@@ -89,7 +89,7 @@ export default function (pi: ExtensionAPI) {
     }
   }
 
-  const resource = new Resource(resourceAttrs);
+  const resource = resourceFromAttributes(resourceAttrs);
 
   // --- Common metric attributes (promoted to Prometheus labels) ---
   // Resource attributes are NOT auto-promoted by Mimir except service.name → job.
@@ -104,14 +104,15 @@ export default function (pi: ExtensionAPI) {
   commonMetricAttrs["host.name"] = hostname();
 
   // --- Trace provider ---
-  const traceProvider = new NodeTracerProvider({ resource });
-
-  traceProvider.addSpanProcessor(
-    new BatchSpanProcessor(new OTLPTraceExporter({ url: tracesEndpoint }))
-  );
+  // sdk-trace 2.x removed the mutable addSpanProcessor(); processors are
+  // supplied at construction instead.
+  const spanProcessors = [
+    new BatchSpanProcessor(new OTLPTraceExporter({ url: tracesEndpoint })),
+  ];
   if (debug) {
-    traceProvider.addSpanProcessor(new BatchSpanProcessor(new ConsoleSpanExporter()));
+    spanProcessors.push(new BatchSpanProcessor(new ConsoleSpanExporter()));
   }
+  const traceProvider = new NodeTracerProvider({ resource, spanProcessors });
   // Don't use traceProvider.register() — it sets the global provider which
   // can only be done once per process. On /reload the extension re-runs but
   // the global is already set, so the new provider's spans wouldn't export.
