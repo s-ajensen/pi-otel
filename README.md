@@ -6,28 +6,33 @@ OpenTelemetry tracing and metrics for [pi coding agent](https://github.com/badlo
 
 ```
 session                          (root span, entire session lifecycle)
-├── agent.prompt                 (one per user message)
-│   └── agent.turn               (one per LLM call + tool execution cycle)
-│       ├── llm.request          (span event: before provider API call)
-│       ├── tool.bash            (tool execution span)
-│       ├── tool.read            (tool execution span)
-│       └── tool.edit            (tool execution span)
-├── model.changed                (span event on model switch)
-└── session.compacted            (span event on compaction)
+└── agent.prompt                 (one per user message)
+    └── agent.turn               (one per LLM call + tool execution cycle)
+        └── tool.<name>          (tool execution span)
 ```
+
+Span events: `llm.request` (on the turn span, before each provider call),
+`model.changed` and `session.compacted` (on the session span).
 
 ## Metrics
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `pi.tokens.input` | Counter | — | Total input tokens consumed |
-| `pi.tokens.output` | Counter | — | Total output tokens produced |
+| `pi.tokens.input` | Counter | `model`, `provider` | Input tokens consumed (includes cache read/write) |
+| `pi.tokens.output` | Counter | `model`, `provider` | Output tokens produced |
+| `pi.cost` | Counter (USD) | `model`, `provider` | Cost as reported by pi per turn |
 | `pi.tool.calls` | Counter | `tool.name` | Total tool invocations |
 | `pi.tool.errors` | Counter | `tool.name` | Total failed tool invocations |
 | `pi.tool.duration` | Histogram (ms) | `tool.name` | Tool execution time |
 | `pi.turns` | Counter | — | Total LLM turns |
 | `pi.prompts` | Counter | — | Total user prompts |
 | `pi.session.duration` | Histogram (s) | — | Session duration |
+
+All counters/histograms also carry the common `user.name` / `host.name`
+attributes. The `model`/`provider` labels let you break cost and token usage
+down per model in Grafana; each turn span also carries the same identifiers
+(`llm.model`, `llm.provider`), so a trace joins back to the matching line in
+the on-disk session JSONL.
 
 ## Account Identity
 
@@ -65,8 +70,14 @@ These propagate to every metric data point and trace span, enabling per-user fil
 | `turn.index` | Turn index within agent prompt |
 | `turn.number` | Global turn number in session |
 | `turn.tool_results` | Number of tool results |
+| `llm.model` | Model that served the turn |
+| `llm.provider` | Provider that served the turn |
 | `llm.usage.input_tokens` | Tokens consumed (input) |
 | `llm.usage.output_tokens` | Tokens produced (output) |
+| `llm.usage.cache_read_tokens` | Cache-read tokens |
+| `llm.usage.cache_write_tokens` | Cache-write tokens |
+| `llm.usage.total_tokens` | Total tokens |
+| `llm.cost.usd` | Turn cost in USD (as reported by pi) |
 
 ### Tool span
 | Attribute | Description |
@@ -90,14 +101,6 @@ These propagate to every metric data point and trace span, enabling per-user fil
 | `OTEL_METRIC_EXPORT_INTERVAL` | `10000` | Metric export interval in ms |
 | `PI_OTEL_USER_EMAIL` | `git config user.email` | Override user email |
 | `PI_OTEL_USER_NAME` | `git config user.name` | Override user display name |
-
-## Grafana Dashboard
-
-A pre-built Grafana dashboard is included in [`pi-otel-telemetry.json`](pi-otel-telemetry.json). Import it into your Grafana instance to visualize pi session traces, token usage, tool call metrics, and more.
-
-![Grafana Dashboard](docs/screenshot.png)
-
-To import: **Grafana → Dashboards → Import → Upload JSON file** → select `pi-otel-telemetry.json`.
 
 ## Quick Start
 
@@ -150,19 +153,10 @@ PI_OTEL_DEBUG=true pi
 PI_OTEL_ENABLED=false pi
 ```
 
-## Installation
-
-Install with:
+## Development
 
 ```bash
-pi install git:github.com/mprokopov/pi-otel-telemetry
-```
-
-The package is loaded by pi from `~/.pi/agent/git/github.com/mprokopov/pi-otel-telemetry`.
-
-To reinstall dependencies manually:
-
-```bash
-cd ~/.pi/agent/git/github.com/mprokopov/pi-otel-telemetry
-npm install
+bun install
+bun test
+bun run typecheck
 ```

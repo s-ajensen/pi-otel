@@ -1,20 +1,21 @@
 {
   "name": "pi-otel-telemetry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "OpenTelemetry traces & metrics extension for pi coding agent",
-  "keywords": [
-    "pi-package",
-    "opentelemetry",
-    "otel",
-    "telemetry",
-    "tracing",
-    "metrics"
-  ],
+  "keywords": ["pi-package", "opentelemetry", "otel", "telemetry", "tracing", "metrics"],
   "author": "Maksym Prokopov",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mprokopov/pi-otel-telemetry.git"
+    "url": "https://github.com/s-ajensen/pi-otel.git"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
+  "files": ["index.ts", "src/**/*.ts", "README.md"],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
@@ -22,18 +23,16 @@
     "@opentelemetry/exporter-trace-otlp-http": "^0.219.0",
     "@opentelemetry/resources": "^2.8.0",
     "@opentelemetry/sdk-metrics": "^2.8.0",
-    "@opentelemetry/sdk-node": "^0.219.0",
     "@opentelemetry/sdk-trace-base": "^2.8.0",
     "@opentelemetry/sdk-trace-node": "^2.8.0",
     "@opentelemetry/semantic-conventions": "^1.41.1"
   },
   "peerDependencies": {
-    "@mariozechner/pi-coding-agent": "*",
-    "@sinclair/typebox": "*"
+    "@earendil-works/pi-coding-agent": "*"
   },
-  "pi": {
-    "extensions": [
-      "./index.ts"
-    ]
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.79.8",
+    "@types/node": "^26.0.0",
+    "bun-types": "^1.3.14"
   }
 }
