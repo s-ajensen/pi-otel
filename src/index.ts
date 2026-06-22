@@ -48,6 +48,7 @@ export default function (pi: ExtensionAPI) {
 		telemetry.startSession({
 			sessionId: ctx.sessionManager.getSessionFile() ?? "ephemeral",
 			cwd: ctx.cwd,
+			parentSession: ctx.sessionManager.getHeader?.()?.parentSession,
 			account,
 		});
 		if (config.debug) ctx.ui.setStatus("otel", ctx.ui.theme.fg("dim", "⊙ OTEL active"));

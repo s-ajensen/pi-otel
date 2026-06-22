@@ -32,6 +32,20 @@ test("the session span carries identifying attributes", async () => {
 	expect(span.attributes["session.cwd"]).toBe("/work");
 });
 
+test("a meta session span links to its parent (trunk) session", async () => {
+	const h = await buildHarness();
+	h.telemetry.startSession({ sessionId: "meta1", cwd: "/work", parentSession: "trunk1" });
+	h.telemetry.endSession();
+	expect(h.span("session")!.attributes["pi.meta.parent_session"]).toBe("trunk1");
+});
+
+test("a trunk session span omits the parent attribute entirely", async () => {
+	const h = await buildHarness();
+	h.telemetry.startSession({ sessionId: "s1", cwd: "/work" });
+	h.telemetry.endSession();
+	expect(h.span("session")!.attributes["pi.meta.parent_session"]).toBeUndefined();
+});
+
 test("a tool span nests under its turn under its prompt under the session", async () => {
 	const h = await buildHarness();
 	h.telemetry.startSession({ sessionId: "s1", cwd: "/work" });

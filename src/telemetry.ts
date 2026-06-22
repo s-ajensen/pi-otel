@@ -13,6 +13,7 @@ export interface TelemetryConfig {
 export interface SessionInfo {
 	sessionId: string;
 	cwd: string;
+	parentSession?: string;
 	account?: AccountAttrs;
 }
 
@@ -106,6 +107,9 @@ export function createTelemetry(config: TelemetryConfig): Telemetry {
 					"host.name": info.account?.hostname ?? "",
 				},
 			});
+			if (info.parentSession) {
+				sessionSpan.setAttribute("pi.meta.parent_session", info.parentSession);
+			}
 			sessionCtx = trace.setSpan(context.active(), sessionSpan);
 		},
 
